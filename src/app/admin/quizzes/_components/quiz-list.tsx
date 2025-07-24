@@ -1,46 +1,43 @@
 
+'use client';
+
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { deleteQuiz, getQuizzes } from '@/lib/services/quizService';
 import type { Quiz } from '@/lib/types';
-import { PlusCircle, FileEdit, Trash2 } from 'lucide-react';
+import { PlusCircle, FileEdit, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Input } from '@/components/ui/input';
-import { revalidatePath } from 'next/cache';
-import { toast } from '@/hooks/use-toast';
+import { deleteQuizAction } from '../actions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
-// This is now a server component
-export default async function QuizList() {
-  const quizzes: Quiz[] = await getQuizzes();
+export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
+  const [quizzes, setQuizzes] = useState(initialQuizzes);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const router = useRouter();
 
-  async function handleDeleteQuiz(formData: FormData) {
-    'use server';
-    const quizId = formData.get('quizId') as string;
-    const quizTitle = formData.get('quizTitle') as string;
-    
-    if (!quizId) return;
-
-    try {
-        await deleteQuiz(quizId);
-        revalidatePath('/admin/quizzes'); // Invalidate cache for this page
-        // Toast doesn't work in server actions this way, would need a more complex setup
-        // For now, we rely on revalidation to show the change.
-    } catch (error) {
-        console.error("Deletion Failed", error);
-        // Handle error state appropriately, maybe redirect with an error message
-    }
-  }
+  const handleDeleteQuiz = async (quizId: string) => {
+    startTransition(async () => {
+      const result = await deleteQuizAction(quizId);
+      if (result.success) {
+        setQuizzes(quizzes.filter(q => q.id !== quizId));
+        toast({
+          title: "Quiz Deleted",
+          description: "The quiz has been successfully removed.",
+        });
+        // The router.refresh() is useful if you want to be sure the data is fresh from the server
+        // but optimistic update (setQuizzes) provides a faster user experience.
+        router.refresh();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: "Deletion Failed",
+          description: result.error,
+        });
+      }
+    });
+  };
 
   return (
     <div>
@@ -69,31 +66,29 @@ export default async function QuizList() {
                 <FileEdit className="mr-2 h-4 w-4" />
                 Edit
               </Button>
-               <form action={handleDeleteQuiz}>
-                  <input type="hidden" name="quizId" value={quiz.id} />
-                  <input type="hidden" name="quizTitle" value={quiz.title} />
-                  <Button variant="destructive" className="w-full">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                  </Button>
-              </form>
+              <Button variant="destructive" className="w-full" onClick={() => handleDeleteQuiz(quiz.id)} disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Delete
+              </Button>
             </CardFooter>
           </Card>
         ))}
-        <Card className="border-dashed flex flex-col items-center justify-center text-center">
-            <CardHeader>
-                <CardTitle>Create a New Quiz</CardTitle>
-                <CardDescription>Upload images and let AI do the work.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Link href="/admin/quizzes/create" passHref>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Get Started
-                    </Button>
-                </Link>
-            </CardContent>
-        </Card>
+        {quizzes.length === 0 && !isPending && (
+             <Card className="border-dashed flex flex-col items-center justify-center text-center">
+                <CardHeader>
+                    <CardTitle>No Quizzes Found</CardTitle>
+                    <CardDescription>Get started by creating a new quiz.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/admin/quizzes/create" passHref>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create Quiz
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        )}
       </div>
     </div>
   );
