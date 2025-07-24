@@ -35,4 +35,5 @@ export interface LessonSummary {
   title: string;
   summary: string;
   originalFileName: string;
+  createdAt?: any; // To be able to sort by date
 }
