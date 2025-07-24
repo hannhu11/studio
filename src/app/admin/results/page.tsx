@@ -1,53 +1,23 @@
 
-'use client';
-
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { getQuizAttempts } from '@/lib/services/attemptService';
 import { getQuizzes } from '@/lib/services/quizService';
 import type { Quiz, QuizAttempt } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
 
 function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const remainingSeconds = Math.round(seconds % 60);
     return `${minutes}m ${remainingSeconds}s`;
 }
 
-export default function AdminResultsPage() {
-    const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
-    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const [fetchedAttempts, fetchedQuizzes] = await Promise.all([
-                    getQuizAttempts(),
-                    getQuizzes()
-                ]);
-                setAttempts(fetchedAttempts);
-                setQuizzes(fetchedQuizzes);
-            } catch (error) {
-                console.error("Failed to fetch results data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
-    }
+export default async function AdminResultsPage() {
+    const [attempts, quizzes] = await Promise.all([
+        getQuizAttempts(),
+        getQuizzes()
+    ]);
 
     return (
         <div>
@@ -76,7 +46,6 @@ export default function AdminResultsPage() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    {/* <AvatarImage src={user?.avatarUrl} /> */}
                                                     <AvatarFallback>{attempt.userName.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <span className="font-medium">{attempt.userName}</span>
@@ -93,6 +62,13 @@ export default function AdminResultsPage() {
                                     </TableRow>
                                 );
                             })}
+                             {attempts.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        No results yet.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { summarizeLesson } from '@/ai/flows/summarize-lesson';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getLessons, addLesson, deleteLesson } from '@/lib/services/lessonService';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export function LessonList({initialLessons}: {initialLessons: LessonSummary[]}) {
     const [lessons, setLessons] = useState<LessonSummary[]>(initialLessons);
@@ -19,6 +20,7 @@ export function LessonList({initialLessons}: {initialLessons: LessonSummary[]}) 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
+    const router = useRouter();
 
     const fetchLessons = async () => {
         try {
@@ -71,7 +73,9 @@ export function LessonList({initialLessons}: {initialLessons: LessonSummary[]}) 
                     description: `"${newLesson.title}" has been summarized and saved.`,
                 });
                 setFile(null);
-                fetchLessons(); // Refresh the list
+                // Instead of fetching, we can just optimistically update the UI
+                // or for simplicity, we refresh the page to get the latest data.
+                router.refresh(); 
             } catch (err) {
                 setError("Failed to summarize the lesson. Please try again.");
                 console.error(err);
@@ -92,7 +96,7 @@ export function LessonList({initialLessons}: {initialLessons: LessonSummary[]}) 
                 title: "Lesson Deleted",
                 description: `"${lessonTitle}" has been removed.`,
             });
-            fetchLessons(); // Refresh list
+            router.refresh();
         } catch (err) {
             toast({
                 variant: 'destructive',

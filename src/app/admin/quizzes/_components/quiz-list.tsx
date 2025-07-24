@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { getQuizzes, deleteQuiz } from '@/lib/services/quizService';
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+
 
 export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
   const [quizzes, setQuizzes] = useState<Quiz[]>(initialQuizzes);
@@ -28,20 +30,7 @@ export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmDeleteText, setConfirmDeleteText] = useState('');
   const { toast } = useToast();
-
-  const fetchQuizzes = async () => {
-    try {
-      setIsLoading(true);
-      const fetchedQuizzes = await getQuizzes();
-      setQuizzes(fetchedQuizzes);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load quizzes. Please try again later.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const router = useRouter();
 
   const handleDeleteQuiz = async (quizId: string) => {
     try {
@@ -50,7 +39,7 @@ export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
             title: "Quiz Deleted",
             description: "The quiz has been successfully removed.",
         });
-        fetchQuizzes();
+        router.refresh(); // Refresh the page to get the latest data
     } catch (error) {
         toast({
             variant: "destructive",
@@ -111,7 +100,7 @@ export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
                         This action cannot be undone. This will permanently delete the quiz <strong className="text-foreground">{quiz.title}</strong>.
                         <br/><br/>
                         To confirm, please type <strong className="text-foreground">{quiz.title}</strong> in the box below.
-                      </AlertDialogDescription>
+                      </Description>
                     </AlertDialogHeader>
                     <Input 
                         value={confirmDeleteText}

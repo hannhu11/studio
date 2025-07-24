@@ -1,53 +1,30 @@
 
-'use client';
-
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
 import { getAttemptsByUserId } from '@/lib/services/attemptService';
 import { getQuizzes } from '@/lib/services/quizService';
-import type { Quiz, QuizAttempt } from '@/lib/types';
+import { auth } from '@/lib/firebase';
+import { redirect } from 'next/navigation';
 
-export default function UserHistoryPage() {
-    const { user } = useAuth();
-    const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
-    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const [userAttempts, allQuizzes] = await Promise.all([
-                    getAttemptsByUserId(user.uid),
-                    getQuizzes()
-                ]);
-                setAttempts(userAttempts);
-                setQuizzes(allQuizzes);
-            } catch (error) {
-                console.error("Failed to fetch user history:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [user]);
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
+export default async function UserHistoryPage() {
+    // This is a server component, so we can't use the useAuth hook.
+    // We get the current user directly from Firebase auth on the server.
+    const user = auth.currentUser;
+    
+    if (!user) {
+        // This should theoretically not happen if the layout handles redirection,
+        // but it's a good safeguard.
+        redirect('/');
     }
+
+    const [attempts, quizzes] = await Promise.all([
+        getAttemptsByUserId(user.uid),
+        getQuizzes()
+    ]);
 
     return (
         <div>
@@ -94,6 +71,13 @@ export default function UserHistoryPage() {
                                     </TableRow>
                                 );
                             })}
+                            {attempts.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        You haven't attempted any quizzes yet.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
