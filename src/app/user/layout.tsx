@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -42,24 +42,12 @@ export default function UserLayout({
 }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname.startsWith(path);
-  const { user, signOut, loading, isAdmin } = useAuth();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
+  const { user, signOut } = useAuth();
   
-  // Redirect to admin if a non-admin user tries to access user pages, but is an admin
-  React.useEffect(() => {
-    if (!loading && user && isAdmin) {
-      router.push('/admin/dashboard');
-    }
-  }, [user, isAdmin, loading, router]);
-  
-  if (loading || !user || isAdmin) {
-    return null; // Or a loading spinner
+  if (!user) {
+    // This should ideally not happen due to the logic in AuthProvider,
+    // but it's a good failsafe.
+    return null; 
   }
 
   return (

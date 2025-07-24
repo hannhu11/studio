@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -34,25 +34,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname.startsWith(path);
-  const { user, isAdmin, signOut, loading } = useAuth();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        // Not logged in, redirect to home
-        router.push('/');
-      } else if (!isAdmin) {
-        // Logged in but not admin, redirect to user dashboard
-        router.push('/user/dashboard');
-      }
-    }
-  }, [user, isAdmin, loading, router]);
-
-  if (loading || !user || !isAdmin) {
-    // Render nothing or a loading spinner while checking auth
-    return null;
-  }
+  const { signOut } = useAuth();
 
   return (
     <SidebarProvider>

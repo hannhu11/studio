@@ -6,7 +6,7 @@ import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 
 export default function Home() {
   const { user, isAdmin, signInWithGoogle, loading } = useAuth();
@@ -26,7 +26,7 @@ export default function Home() {
       // Show a loading spinner or a blank screen while redirecting
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-          <Logo />
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       );
   }
