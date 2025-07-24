@@ -109,13 +109,7 @@ export default function CreateQuizPage() {
       const newQuiz: Omit<Quiz, 'id'> = {
         title: quizTitle,
         description: quizDescription,
-        questions: generatedQuiz.questions.map((q, index) => ({
-          id: `${Date.now()}-${index}`, // Assign a temporary unique ID
-          questionText: q.questionText,
-          answers: q.answers,
-          correctAnswerIndex: q.correctAnswerIndex,
-          image: q.image, // Ensure image is carried over if it exists
-        }))
+        questions: generatedQuiz.questions,
       };
       
       await addQuiz(newQuiz);
@@ -289,3 +283,4 @@ export default function CreateQuizPage() {
     </div>
   );
 }
+
