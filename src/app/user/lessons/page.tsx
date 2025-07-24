@@ -1,49 +1,11 @@
-'use client';
 
-import { useState, useEffect } from 'react';
+import { getLessons } from '@/lib/services/lessonService';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import type { LessonSummary } from "@/lib/types";
-import { getLessons } from '@/lib/services/lessonService';
-import { BookOpen, Loader2 } from "lucide-react"
+import { BookOpen } from "lucide-react"
 
-export default function UserLessonsPage() {
-    const [lessons, setLessons] = useState<LessonSummary[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchLessons = async () => {
-            try {
-                setIsLoading(true);
-                const fetchedLessons = await getLessons();
-                setLessons(fetchedLessons);
-            } catch (err) {
-                setError("Could not load lessons. Please try again later.");
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchLessons();
-    }, []);
-
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">Loading lessons...</p>
-            </div>
-        );
-    }
-    
-    if (error) {
-        return (
-          <div className="text-center text-destructive bg-destructive/10 p-4 rounded-md">
-            {error}
-          </div>
-        );
-    }
+export default async function UserLessonsPage() {
+    const lessons = await getLessons();
 
     return (
         <div>
@@ -64,7 +26,7 @@ export default function UserLessonsPage() {
                         </AccordionContent>
                     </AccordionItem>
                 ))}
-                 {lessons.length === 0 && !isLoading && (
+                 {lessons.length === 0 && (
                     <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                         <p>No lesson summaries are available yet. Check back later!</p>
                     </div>

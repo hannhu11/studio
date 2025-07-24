@@ -1,52 +1,14 @@
-'use client';
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { getQuizzes } from '@/lib/services/quizService';
 import type { Quiz } from '@/lib/types';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
-export default function UserDashboard() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchQuizzes = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedQuizzes = await getQuizzes();
-        setQuizzes(fetchedQuizzes);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load quizzes. Please try again later.');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchQuizzes();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading quizzes...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-destructive bg-destructive/10 p-4 rounded-md">
-        {error}
-      </div>
-    );
-  }
+export default async function UserDashboard() {
+  const quizzes = await getQuizzes();
 
   return (
     <div>
