@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import type { LessonSummary } from '@/lib/types';
 
 // Function to add a new lesson to Firestore
@@ -23,14 +23,18 @@ export const getLessons = async (): Promise<LessonSummary[]> => {
         const lessonCollection = collection(db, 'lessons');
         const lessonSnapshot = await getDocs(lessonCollection);
         
-        const lessonList = lessonSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as LessonSummary));
+        const lessonList = lessonSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+            } as LessonSummary;
+        });
 
         // Sort by creation date, newest first
         // @ts-ignore
-        lessonList.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
+        lessonList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         return lessonList;
     } catch (e) {
