@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -23,9 +23,10 @@ import {
   Users,
   Home,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
-import { useAuth, AuthGuard } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AdminLayout({
   children,
@@ -33,11 +34,25 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isActive = (path: string) => pathname.startsWith(path);
-  const { signOut } = useAuth();
+  const { user, isAdmin, loading, signOut } = useAuth();
+
+  React.useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      router.replace('/');
+    }
+  }, [user, isAdmin, loading, router]);
+  
+  if (loading || !user || !isAdmin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <AuthGuard>
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
@@ -115,6 +130,5 @@ export default function AdminLayout({
         </Sidebar>
         <SidebarInset className="p-4 sm:p-6 lg:p-8">{children}</SidebarInset>
       </SidebarProvider>
-    </AuthGuard>
   );
 }

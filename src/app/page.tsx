@@ -3,17 +3,28 @@
 
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/Logo';
-import { useAuth, useAuthRedirect } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { LogIn, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Home() {
-  const { signInWithGoogle, loading: authLoading } = useAuth();
-  const { loading: redirectLoading } = useAuthRedirect();
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const router = useRouter();
 
-  const isLoading = authLoading || redirectLoading;
+  useEffect(() => {
+    if (!authLoading) {
+      if (user) {
+        if (isAdmin) {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/user/dashboard');
+        }
+      }
+    }
+  }, [user, isAdmin, authLoading, router]);
 
-  // This loader will be shown while the initial auth check and potential redirect happens.
-  if (isLoading) {
+  if (authLoading || user) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -33,8 +44,8 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-6">
-        <Button size="lg" className="w-64" onClick={signInWithGoogle} disabled={isLoading}>
-            {isLoading ? (
+        <Button size="lg" className="w-64" onClick={() => useAuth.getState().signInWithGoogle()} disabled={authLoading}>
+            {authLoading ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
                 <LogIn className="mr-2 h-5 w-5" />
