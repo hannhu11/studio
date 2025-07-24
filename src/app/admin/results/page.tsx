@@ -11,9 +11,6 @@ import { getQuizzes } from '@/lib/services/quizService';
 import type { Quiz, QuizAttempt } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
-// Revalidate this page every 60 seconds
-export const revalidate = 60;
-
 function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;

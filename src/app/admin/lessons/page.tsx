@@ -11,9 +11,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getLessons, addLesson, deleteLesson } from '@/lib/services/lessonService';
 import { useToast } from '@/hooks/use-toast';
 
-// Revalidate this page every 60 seconds
-export const revalidate = 60;
-
 export default function AdminLessonsPage() {
     const [lessons, setLessons] = useState<LessonSummary[]>([]);
     const [file, setFile] = useState<File | null>(null);
