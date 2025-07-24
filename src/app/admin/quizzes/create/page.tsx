@@ -24,7 +24,7 @@ type FilePreview = {
 
 export default function CreateQuizPage() {
   const [files, setFiles] = useState<FilePreview[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedQuiz, setGeneratedQuiz] = useState<GenerateQuestionsFromImagesOutput | null>(null);
@@ -65,12 +65,11 @@ export default function CreateQuizPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsGenerating(true);
     setError(null);
     setGeneratedQuiz(null);
 
     try {
-      // This is a slow process, we inform the user
       let allQuestions: GenerateQuestionsFromImagesOutput['questions'] = [];
       for (const file of files) {
         const result = await generateQuestionsFromImages({ imageDataUri: file.dataUri });
@@ -89,7 +88,7 @@ export default function CreateQuizPage() {
       setError('Failed to generate quiz. The AI model may be unavailable or the image format is not supported.');
       console.error(e);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -118,11 +117,8 @@ export default function CreateQuizPage() {
         title: "Quiz Published!",
         description: `"${quizTitle}" is now available for users.`,
       });
-
-      // Redirect after a short delay to allow the user to see the toast message
-      setTimeout(() => {
-          router.push('/admin/quizzes');
-      }, 1000)
+      
+      router.push('/admin/quizzes');
 
     } catch (e) {
         toast({
@@ -159,7 +155,7 @@ export default function CreateQuizPage() {
                             <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                             <p className="text-xs text-muted-foreground">PNG, JPG, or other image formats</p>
                         </div>
-                        <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*" disabled={isLoading} />
+                        <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*" disabled={isGenerating} />
                     </label>
                 </div>
               </div>
@@ -173,7 +169,7 @@ export default function CreateQuizPage() {
                                 <FileImage className="h-4 w-4 flex-shrink-0" />
                                 <span className="truncate">{file.name}</span>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)} disabled={isLoading}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)} disabled={isGenerating}>
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
@@ -183,8 +179,8 @@ export default function CreateQuizPage() {
               
             </CardContent>
           </Card>
-           <Button onClick={handleGenerateQuiz} disabled={isLoading || files.length === 0} className="w-full" size="lg">
-                {isLoading ? (
+           <Button onClick={handleGenerateQuiz} disabled={isGenerating || files.length === 0} className="w-full" size="lg">
+                {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating... (This may take a moment)
@@ -215,7 +211,7 @@ export default function CreateQuizPage() {
                 </Alert>
               )}
               
-              {isLoading && (
+              {isGenerating && (
                   <div className="text-center py-12">
                       <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
                       <p className="mt-4 text-muted-foreground">Analyzing images and creating questions...</p>
@@ -270,7 +266,7 @@ export default function CreateQuizPage() {
                 </div>
               )}
 
-              {!isLoading && !generatedQuiz && (
+              {!isGenerating && !generatedQuiz && (
                 <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
                   <Wand2 className="mx-auto h-10 w-10 mb-4" />
                   <p>Your generated quiz will appear here for review after you upload images and click "Generate".</p>
@@ -283,4 +279,3 @@ export default function CreateQuizPage() {
     </div>
   );
 }
-
