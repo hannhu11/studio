@@ -1,40 +1,25 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, writeBatch, Timestamp, query, orderBy } from "firebase/firestore"; 
-import type { Quiz, Question } from '@/lib/types';
-
-// We are defining a type that represents the quiz data to be stored in Firestore.
-// Note that the 'id' is not part of the data being sent to Firestore, as Firestore generates it.
-type QuizData = Omit<Quiz, 'id' | 'questions'> & {
-    createdAt: any; // We'll use a server-side timestamp
-};
-
-type QuestionData = Omit<Question, 'id'>;
+import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, Timestamp, query, orderBy } from "firebase/firestore"; 
+import type { Quiz } from '@/lib/types';
 
 
 // Function to add a new quiz to Firestore
-export const addQuiz = async (quiz: Omit<Quiz, 'id'>) => {
+export const addQuiz = async (quiz: Omit<Quiz, 'id'>): Promise<string> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        const docRef = await addDoc(quizCollection, {
-            title: quiz.title,
-            description: quiz.description,
+        // Now, we store the questions array directly in the quiz document.
+        // The question IDs are generated client-side for simplicity or can be omitted if not strictly needed for sub-document identification.
+        const quizDataWithTimestamp = {
+            ...quiz,
+            questions: quiz.questions.map((q, index) => ({
+                // ensure questions have a temporary id, though firestore will store them in an array
+                id: q.id || `${Date.now()}-${index}`, 
+                ...q
+            })),
             createdAt: serverTimestamp()
-        });
+        };
 
-        const questionsCollection = collection(doc(db, 'quizzes', docRef.id), 'questions');
-        // Use a batch write for creating all questions at once for efficiency
-        const batch = writeBatch(db);
-        quiz.questions.forEach(question => {
-            const newQuestionRef = doc(questionsCollection); // Automatically generate a new ID
-            batch.set(newQuestionRef, {
-                 questionText: question.questionText,
-                answers: question.answers,
-                correctAnswerIndex: question.correctAnswerIndex,
-                image: question.image || null,
-            } as QuestionData);
-        });
-        await batch.commit();
-        
+        const docRef = await addDoc(quizCollection, quizDataWithTimestamp);
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -49,21 +34,17 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
         const q = query(quizCollection, orderBy("createdAt", "desc"));
         const quizSnapshot = await getDocs(q);
         
-        const quizList = await Promise.all(quizSnapshot.docs.map(async (docSnapshot) => {
-            const docData = docSnapshot.data();
-            const quizData = { 
-                id: docSnapshot.id, 
-                ...docData,
-                createdAt: docData.createdAt instanceof Timestamp ? docData.createdAt.toDate() : new Date(),
+        // With questions embedded, we no longer need to make N+1 queries.
+        const quizList = quizSnapshot.docs.map(docSnapshot => {
+            const data = docSnapshot.data();
+            return {
+                id: docSnapshot.id,
+                title: data.title,
+                description: data.description,
+                questions: data.questions || [], // Questions are now part of the document
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
             } as Quiz;
-            
-            // Also fetch the questions for each quiz
-            const questionsCollection = collection(db, 'quizzes', docSnapshot.id, 'questions');
-            const questionsSnapshot = await getDocs(questionsCollection);
-            quizData.questions = questionsSnapshot.docs.map(qDoc => ({ id: qDoc.id, ...qDoc.data() } as Question));
-            
-            return quizData;
-        }));
+        });
         
         return quizList;
     } catch (e) {
@@ -83,11 +64,15 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
             return null;
         }
 
-        const quizData = { id: quizDoc.id, ...quizDoc.data() } as Quiz;
-
-        const questionsCollection = collection(db, 'quizzes', id, 'questions');
-        const questionsSnapshot = await getDocs(questionsCollection);
-        quizData.questions = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+        const data = quizDoc.data();
+        // The entire quiz, including questions, is fetched in one go.
+        const quizData = {
+            id: quizDoc.id,
+            title: data.title,
+            description: data.description,
+            questions: data.questions || [],
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+        } as Quiz;
 
         return quizData;
     } catch (e) {
@@ -96,25 +81,11 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
     }
 }
 
-// Function to delete a quiz and all its sub-collection documents (questions)
+// Function to delete a quiz. Since questions are embedded, we only need to delete the main document.
 export const deleteQuiz = async (id: string): Promise<void> => {
     try {
         const quizDocRef = doc(db, 'quizzes', id);
-        
-        // Firestore does not automatically delete sub-collections.
-        // We must delete all question documents first.
-        const questionsCollection = collection(quizDocRef, 'questions');
-        const questionsSnapshot = await getDocs(questionsCollection);
-
-        const batch = writeBatch(db);
-        questionsSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
-
-        // After deleting the sub-collection, delete the main quiz document.
         await deleteDoc(quizDocRef);
-        
     } catch (e) {
         console.error("Error deleting document: ", e);
         throw new Error("Could not delete quiz from the database.");
