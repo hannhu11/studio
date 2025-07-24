@@ -4,14 +4,14 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration is now stored in environment variables
 const firebaseConfig = {
-  projectId: "ai-quiz-master-6t9kh",
-  appId: "1:764842868214:web:11f52f49f1631d93c69bd7",
-  storageBucket: "ai-quiz-master-6t9kh.firebasestorage.app",
-  apiKey: "AIzaSyCWNvi18ZER4SMj_Py8RpXqAYgNOY3WW0M",
-  authDomain: "ai-quiz-master-6t9kh.firebaseapp.com",
-  messagingSenderId: "764842868214",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
 
 // Initialize Firebase
