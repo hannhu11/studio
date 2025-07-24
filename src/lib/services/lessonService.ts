@@ -22,7 +22,6 @@ export const getLessons = async (): Promise<LessonSummary[]> => {
     try {
         const lessonCollection = collection(db, 'lessons');
         const q = query(lessonCollection, orderBy("createdAt", "desc"));
-        // Use getDocs to leverage Firestore's cache.
         const lessonSnapshot = await getDocs(q);
         
         const lessonList = lessonSnapshot.docs.map(doc => {

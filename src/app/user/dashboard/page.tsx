@@ -9,6 +9,9 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+// Revalidate this page every 60 seconds
+export const revalidate = 60;
+
 export default function UserDashboard() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,9 +20,7 @@ export default function UserDashboard() {
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
-        // We set loading to true on every fetch to show feedback
         setIsLoading(true);
-        // getQuizzes now always fetches from server, ensuring fresh data
         const fetchedQuizzes = await getQuizzes();
         setQuizzes(fetchedQuizzes);
         setError(null);

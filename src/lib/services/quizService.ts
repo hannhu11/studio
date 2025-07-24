@@ -29,8 +29,6 @@ export const addQuiz = async (quiz: Omit<Quiz, 'id'>): Promise<string> => {
 export const getQuizzes = async (): Promise<Quiz[]> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        // Use getDocs to leverage Firestore's cache. It fetches from cache first, 
-        // and gets updates from the server in the background.
         const q = query(quizCollection, orderBy("createdAt", "desc"));
         const quizSnapshot = await getDocs(q);
         
@@ -56,7 +54,6 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
 export const getQuizById = async (id: string): Promise<Quiz | null> => {
      try {
         const quizDocRef = doc(db, 'quizzes', id);
-        // getDoc also uses the cache by default, ensuring fast loads for viewed quizzes.
         const quizDoc = await getDoc(quizDocRef);
 
         if (!quizDoc.exists()) {

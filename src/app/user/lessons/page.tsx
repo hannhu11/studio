@@ -6,6 +6,9 @@ import type { LessonSummary } from "@/lib/types";
 import { getLessons } from '@/lib/services/lessonService';
 import { BookOpen, Loader2 } from "lucide-react"
 
+// Revalidate this page every 60 seconds
+export const revalidate = 60;
+
 export default function UserLessonsPage() {
     const [lessons, setLessons] = useState<LessonSummary[]>([]);
     const [isLoading, setIsLoading] = useState(true);

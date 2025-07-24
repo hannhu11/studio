@@ -13,6 +13,8 @@ import { getAttemptsByUserId } from '@/lib/services/attemptService';
 import { getQuizzes } from '@/lib/services/quizService';
 import type { Quiz, QuizAttempt } from '@/lib/types';
 
+// Revalidate this page every 60 seconds
+export const revalidate = 60;
 
 export default function UserHistoryPage() {
     const { user } = useAuth();

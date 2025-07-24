@@ -12,6 +12,9 @@ import { getQuizAttempts }from '@/lib/services/attemptService';
 import type { Quiz, QuizAttempt } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
+// Revalidate this page every 60 seconds
+export const revalidate = 60;
+
 export default function AdminDashboard() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
