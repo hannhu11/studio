@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getQuizById } from '@/lib/services/quizService';
-import type { Quiz, Question } from '@/lib/types';
+import type { Quiz, Question, QuizAttempt } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import Image from 'next/image';
 import { explainAnswer, ExplainAnswerOutput } from '@/ai/flows/explain-answer';
 import { getLessons } from '@/lib/services/lessonService';
+import { useAuth } from '@/hooks/use-auth';
+import { addQuizAttempt } from '@/lib/services/attemptService';
+import { useToast } from '@/hooks/use-toast';
 
 
 function ExplanationModal({ question }: { question: Question }) {
@@ -91,6 +94,8 @@ export default function QuizPage() {
   const router = useRouter();
   const params = useParams();
   const quizId = params.id as string;
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +103,7 @@ export default function QuizPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
+  const [startTime, setStartTime] = useState(0);
 
   useEffect(() => {
     if (!quizId) return;
@@ -109,6 +115,7 @@ export default function QuizPage() {
             if (foundQuiz) {
               setQuiz(foundQuiz);
               setSelectedAnswers(Array(foundQuiz.questions.length).fill(null));
+              setStartTime(Date.now()); // Record start time
             } else {
                 router.push('/user/dashboard'); // Redirect if quiz not found
             }
@@ -150,7 +157,9 @@ export default function QuizPage() {
     }
   };
 
-  const finishQuiz = () => {
+  const finishQuiz = async () => {
+    if (!user || !quiz) return;
+
     let correctCount = 0;
     quiz.questions.forEach((q, index) => {
       if (selectedAnswers[index] === q.correctAnswerIndex) {
@@ -160,7 +169,35 @@ export default function QuizPage() {
     const finalScore = Math.round((correctCount / quiz.questions.length) * 100);
     setScore(finalScore);
     setIsFinished(true);
-    // TODO: Save quiz attempt to Firestore
+
+    const timeTaken = Math.round((Date.now() - startTime) / 1000); // in seconds
+
+    const attempt: Omit<QuizAttempt, 'id' | 'submittedAt'> = {
+        quizId: quiz.id,
+        userId: user.uid,
+        userName: user.displayName || "Anonymous",
+        score: finalScore,
+        timeTaken,
+        answers: quiz.questions.map((q, index) => ({
+            questionId: q.id,
+            selectedAnswerIndex: selectedAnswers[index]
+        }))
+    };
+    
+    try {
+        await addQuizAttempt(attempt);
+        toast({
+            title: "Quiz Submitted",
+            description: "Your results have been saved."
+        });
+    } catch (error) {
+        console.error("Failed to save quiz attempt:", error);
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "Could not save your results. Please try again."
+        });
+    }
   };
   
   if (isFinished) {

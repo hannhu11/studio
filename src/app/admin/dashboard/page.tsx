@@ -1,19 +1,57 @@
+
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, ClipboardCheck, Book, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-// Note: This page still uses mock data. This should be updated to use real data from Firestore.
-import { mockQuizzes, mockAttempts, mockUsers } from '@/lib/mock-data';
-
-const totalAttempts = mockAttempts.length;
-const totalUsers = mockUsers.length;
-const totalQuizzes = mockQuizzes.length;
-const avgScore = totalAttempts > 0 ? Math.round(mockAttempts.reduce((acc, a) => acc + a.score, 0) / totalAttempts) : 0;
-
+import { getQuizzes } from '@/lib/services/quizService';
+import { getQuizAttempts }from '@/lib/services/attemptService';
+import type { Quiz, QuizAttempt } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const recentAttempts = [...mockAttempts].sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()).slice(0, 5);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [fetchedQuizzes, fetchedAttempts] = await Promise.all([
+          getQuizzes(),
+          getQuizAttempts(),
+        ]);
+        setQuizzes(fetchedQuizzes);
+        setAttempts(fetchedAttempts);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  const totalAttempts = attempts.length;
+  const uniqueUserIds = new Set(attempts.map(a => a.userId));
+  const totalUsers = uniqueUserIds.size;
+  const totalQuizzes = quizzes.length;
+  const avgScore = totalAttempts > 0 ? Math.round(attempts.reduce((acc, a) => acc + a.score, 0) / totalAttempts) : 0;
+  
+  const recentAttempts = [...attempts].sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()).slice(0, 5);
+
 
   return (
     <div>
@@ -37,7 +75,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Registered users</p>
+            <p className="text-xs text-muted-foreground">Took at least one quiz</p>
           </CardContent>
         </Card>
         <Card>
@@ -82,13 +120,13 @@ export default function AdminDashboard() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={mockUsers.find(u => u.id === attempt.userId)?.avatarUrl} />
+                        {/* <AvatarImage src={mockUsers.find(u => u.id === attempt.userId)?.avatarUrl} /> */}
                         <AvatarFallback>{attempt.userName.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <span className="font-medium">{attempt.userName}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{mockQuizzes.find(q => q.id === attempt.quizId)?.title}</TableCell>
+                  <TableCell>{quizzes.find(q => q.id === attempt.quizId)?.title}</TableCell>
                   <TableCell>
                     <Badge variant={attempt.score > 70 ? "default" : "destructive"}>{attempt.score}%</Badge>
                   </TableCell>

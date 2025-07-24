@@ -11,6 +11,7 @@ export interface Quiz {
   title: string;
   description: string;
   questions: Question[];
+  createdAt?: any;
 }
 
 export interface User {
@@ -26,7 +27,7 @@ export interface QuizAttempt {
   userName: string;
   score: number; // as a percentage
   timeTaken: number; // in seconds
-  submittedAt: Date;
+  submittedAt: any;
   answers: { questionId: string; selectedAnswerIndex: number | null }[];
 }
 

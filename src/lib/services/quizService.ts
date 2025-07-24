@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, writeBatch } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, writeBatch, Timestamp, query, orderBy } from "firebase/firestore"; 
 import type { Quiz, Question } from '@/lib/types';
 
 // We are defining a type that represents the quiz data to be stored in Firestore.
@@ -46,10 +46,16 @@ export const addQuiz = async (quiz: Omit<Quiz, 'id'>) => {
 export const getQuizzes = async (): Promise<Quiz[]> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        const quizSnapshot = await getDocs(quizCollection);
+        const q = query(quizCollection, orderBy("createdAt", "desc"));
+        const quizSnapshot = await getDocs(q);
         
         const quizList = await Promise.all(quizSnapshot.docs.map(async (docSnapshot) => {
-            const quizData = { id: docSnapshot.id, ...docSnapshot.data() } as Quiz;
+            const docData = docSnapshot.data();
+            const quizData = { 
+                id: docSnapshot.id, 
+                ...docData,
+                createdAt: docData.createdAt instanceof Timestamp ? docData.createdAt.toDate() : new Date(),
+            } as Quiz;
             
             // Also fetch the questions for each quiz
             const questionsCollection = collection(db, 'quizzes', docSnapshot.id, 'questions');

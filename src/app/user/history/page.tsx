@@ -1,19 +1,54 @@
+
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockAttempts, mockQuizzes } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { Eye, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { getAttemptsByUserId } from '@/lib/services/attemptService';
+import { getQuizzes } from '@/lib/services/quizService';
+import type { Quiz, QuizAttempt } from '@/lib/types';
 
-function formatTime(seconds: number) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-}
 
 export default function UserHistoryPage() {
-    const userAttempts = [...mockAttempts].sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    const { user } = useAuth();
+    const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
+    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [userAttempts, allQuizzes] = await Promise.all([
+                    getAttemptsByUserId(user.uid),
+                    getQuizzes()
+                ]);
+                setAttempts(userAttempts);
+                setQuizzes(allQuizzes);
+            } catch (error) {
+                console.error("Failed to fetch user history:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [user]);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -35,8 +70,8 @@ export default function UserHistoryPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {userAttempts.map(attempt => {
-                                const quiz = mockQuizzes.find(q => q.id === attempt.quizId);
+                            {attempts.map(attempt => {
+                                const quiz = quizzes.find(q => q.id === attempt.quizId);
                                 const status = attempt.score >= 70 ? 'Pass' : 'Fail';
                                 return (
                                     <TableRow key={attempt.id}>
@@ -49,6 +84,7 @@ export default function UserHistoryPage() {
                                         </TableCell>
                                         <TableCell>{attempt.submittedAt.toLocaleDateString()}</TableCell>
                                         <TableCell className="text-right">
+                                            {/* Note: The review button currently just restarts the quiz. A dedicated review page would be a future improvement. */}
                                             <Link href={`/quiz/${attempt.quizId}`} passHref>
                                                 <Button variant="outline" size="sm">
                                                     <Eye className="mr-2 h-4 w-4" />
