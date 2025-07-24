@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +22,10 @@ import {
   BookOpen,
   Users,
   Home,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AdminLayout({
   children,
@@ -31,6 +34,25 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname.startsWith(path);
+  const { user, isAdmin, signOut, loading } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        // Not logged in, redirect to home
+        router.push('/');
+      } else if (!isAdmin) {
+        // Logged in but not admin, redirect to user dashboard
+        router.push('/user/dashboard');
+      }
+    }
+  }, [user, isAdmin, loading, router]);
+
+  if (loading || !user || !isAdmin) {
+    // Render nothing or a loading spinner while checking auth
+    return null;
+  }
 
   return (
     <SidebarProvider>
@@ -90,12 +112,22 @@ export default function AdminLayout({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <Link href="/" passHref legacyBehavior>
-            <SidebarMenuButton>
-                <Home />
-                <span>Back to Home</span>
-            </SidebarMenuButton>
-          </Link>
+          <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={signOut}>
+                    <LogOut />
+                    <span>Logout</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                 <Link href="/" passHref legacyBehavior>
+                    <SidebarMenuButton>
+                        <Home />
+                        <span>Back to Home</span>
+                    </SidebarMenuButton>
+                  </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="p-4 sm:p-6 lg:p-8">{children}</SidebarInset>

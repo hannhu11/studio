@@ -1,9 +1,36 @@
+
+'use client';
+
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { User, Shield } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { LogIn } from 'lucide-react';
 
 export default function Home() {
+  const { user, isAdmin, signInWithGoogle, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (isAdmin) {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/user/dashboard');
+      }
+    }
+  }, [user, isAdmin, loading, router]);
+
+  if (loading || user) {
+      // Show a loading spinner or a blank screen while redirecting
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+          <Logo />
+        </div>
+      );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
       <div className="text-center mb-12">
@@ -16,23 +43,11 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-6">
-        <Link href="/user/dashboard" passHref>
-          <Button size="lg" className="w-64">
-            <User className="mr-2 h-5 w-5" />
-            Enter as User
-          </Button>
-        </Link>
-        <Link href="/admin/dashboard" passHref>
-          <Button size="lg" variant="outline" className="w-64 border-primary/50 text-primary hover:bg-primary/5 hover:text-primary">
-            <Shield className="mr-2 h-5 w-5" />
-            Enter as Admin
-          </Button>
-        </Link>
+        <Button size="lg" className="w-64" onClick={signInWithGoogle}>
+          <LogIn className="mr-2 h-5 w-5" />
+          Sign in with Google
+        </Button>
       </div>
-      
-      <p className="mt-16 text-center text-sm text-muted-foreground">
-        Note: This is a demo environment. Logins are simulated for showcase purposes.
-      </p>
     </main>
   );
 }

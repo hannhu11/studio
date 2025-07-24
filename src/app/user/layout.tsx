@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +20,7 @@ import {
   LayoutDashboard,
   BookOpen,
   History,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -31,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function UserLayout({
   children,
@@ -39,6 +42,25 @@ export default function UserLayout({
 }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname.startsWith(path);
+  const { user, signOut, loading, isAdmin } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+  
+  // Redirect to admin if a non-admin user tries to access user pages, but is an admin
+  React.useEffect(() => {
+    if (!loading && user && isAdmin) {
+      router.push('/admin/dashboard');
+    }
+  }, [user, isAdmin, loading, router]);
+  
+  if (loading || !user || isAdmin) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <SidebarProvider>
@@ -92,12 +114,12 @@ export default function UserLayout({
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start items-center gap-3 p-2 h-auto text-left">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="https://placehold.co/100x100.png" alt="@user" data-ai-hint="person avatar" />
-                      <AvatarFallback>DU</AvatarFallback>
+                      <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} data-ai-hint="person avatar" />
+                      <AvatarFallback>{user.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
                       <span className="text-sm font-medium text-sidebar-foreground">
-                        Demo User
+                        {user.displayName}
                       </span>
                     </div>
                   </Button>
@@ -105,12 +127,10 @@ export default function UserLayout({
               <DropdownMenuContent side="right" align="start" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/">Logout</Link>
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                  </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
