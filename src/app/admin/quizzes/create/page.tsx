@@ -1,0 +1,211 @@
+'use client';
+
+import { useState } from 'react';
+import { generateQuestionsFromImages, GenerateQuestionsFromImagesOutput } from '@/ai/flows/generate-questions-from-images';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Loader2, Upload, Wand2, CheckCircle, AlertCircle, FileImage, X } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+
+type FilePreview = {
+  name: string;
+  url: string;
+  dataUri: string;
+};
+
+export default function CreateQuizPage() {
+  const [files, setFiles] = useState<FilePreview[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedQuiz, setGeneratedQuiz] = useState<GenerateQuestionsFromImagesOutput | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const fileArray = Array.from(event.target.files).map(file => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        return new Promise<FilePreview>(resolve => {
+          reader.onload = () => {
+            resolve({
+              name: file.name,
+              url: URL.createObjectURL(file),
+              dataUri: reader.result as string,
+            });
+          };
+        });
+      });
+
+      Promise.all(fileArray).then(newFiles => {
+        setFiles(prevFiles => [...prevFiles, ...newFiles]);
+      });
+    }
+  };
+  
+  const removeFile = (fileName: string) => {
+    setFiles(files.filter(file => file.name !== fileName));
+  };
+
+  const handleGenerateQuiz = async () => {
+    if (files.length === 0) {
+      setError('Please upload at least one image.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setGeneratedQuiz(null);
+
+    try {
+      let allQuestions: GenerateQuestionsFromImagesOutput['questions'] = [];
+      for (const file of files) {
+        const result = await generateQuestionsFromImages({ imageDataUri: file.dataUri });
+        if (result && result.questions) {
+          allQuestions = [...allQuestions, ...result.questions];
+        }
+      }
+      setGeneratedQuiz({ questions: allQuestions });
+    } catch (e) {
+      setError('Failed to generate quiz. The AI model may be unavailable or the image format is not supported.');
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h1 className="font-headline text-3xl font-bold mb-2">Create New Quiz</h1>
+      <p className="text-muted-foreground mb-6">Upload images of your questions, and our AI will do the rest.</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>1. Upload Images</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full">
+                <Label htmlFor="picture" className="sr-only">Upload Images</Label>
+                <div className="flex items-center justify-center w-full">
+                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                            <p className="text-xs text-muted-foreground">PNG, JPG, or other image formats</p>
+                        </div>
+                        <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*" />
+                    </label>
+                </div>
+              </div>
+
+              {files.length > 0 && (
+                <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Uploaded files:</h3>
+                    {files.map(file => (
+                        <div key={file.name} className="flex items-center justify-between p-2 rounded-md border text-sm">
+                            <div className="flex items-center gap-2 truncate">
+                                <FileImage className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+              )}
+              
+            </CardContent>
+          </Card>
+           <Button onClick={handleGenerateQuiz} disabled={isLoading || files.length === 0} className="w-full" size="lg">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Generate Quiz from Images
+                  </>
+                )}
+              </Button>
+        </div>
+
+        <div className="lg:col-span-2">
+          <Card className="min-h-full">
+            <CardHeader>
+              <CardTitle>2. Review & Publish</CardTitle>
+              <CardDescription>
+                Review the AI-generated questions and answers. Edit as needed, then publish the quiz.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              {isLoading && (
+                  <div className="text-center py-12">
+                      <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                      <p className="mt-4 text-muted-foreground">Analyzing images and creating questions...</p>
+                  </div>
+              )}
+
+              {generatedQuiz && (
+                <div className="space-y-6">
+                   <Alert variant="default" className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertTitle className="text-green-800 dark:text-green-300">Generation Complete!</AlertTitle>
+                    <AlertDescription className="text-green-700 dark:text-green-400">
+                      Successfully generated {generatedQuiz.questions.length} questions. Please review them below.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-8">
+                    {generatedQuiz.questions.map((q, qIndex) => (
+                      <Card key={qIndex} className="bg-card">
+                        <CardHeader>
+                          <Label>Question {qIndex + 1}</Label>
+                           <Textarea defaultValue={q.questionText} className="mt-2 text-base" />
+                        </CardHeader>
+                        <CardContent>
+                          <RadioGroup defaultValue={q.answers[q.correctAnswerIndex]}>
+                            {q.answers.map((ans, aIndex) => (
+                              <div key={aIndex} className="flex items-center space-x-3">
+                                <RadioGroupItem value={ans} id={`q${qIndex}a${aIndex}`} checked={aIndex === q.correctAnswerIndex}/>
+                                <Input defaultValue={ans} className="bg-background"/>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <Button size="lg" className="w-full mt-6">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Publish Quiz
+                  </Button>
+                </div>
+              )}
+
+              {!isLoading && !generatedQuiz && (
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>Your generated quiz will appear here for review.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
