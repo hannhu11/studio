@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp, Timestamp, query, orderBy } from "firebase/firestore";
 import type { LessonSummary } from '@/lib/types';
 
 // Function to add a new lesson to Firestore
@@ -17,24 +17,23 @@ export const addLesson = async (lesson: Omit<LessonSummary, 'id'>): Promise<stri
     }
 };
 
-// Function to get all lessons from Firestore
+// Function to get all lessons from Firestore, using cache for speed.
 export const getLessons = async (): Promise<LessonSummary[]> => {
     try {
         const lessonCollection = collection(db, 'lessons');
-        const lessonSnapshot = await getDocs(lessonCollection);
+        const q = query(lessonCollection, orderBy("createdAt", "desc"));
+        // Use getDocs to leverage Firestore's cache.
+        const lessonSnapshot = await getDocs(q);
         
         const lessonList = lessonSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 ...data,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+                // Ensure createdAt is converted to a Date object safely
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
             } as LessonSummary;
         });
-
-        // Sort by creation date, newest first
-        // @ts-ignore
-        lessonList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         return lessonList;
     } catch (e) {

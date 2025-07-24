@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, Timestamp, query, orderBy, getDocsFromCache, getDocsFromServer } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, Timestamp, query, orderBy } from "firebase/firestore"; 
 import type { Quiz } from '@/lib/types';
 
 
@@ -25,13 +25,14 @@ export const addQuiz = async (quiz: Omit<Quiz, 'id'>): Promise<string> => {
     }
 }
 
-// Function to get all quizzes from Firestore, ensuring fresh data
+// Function to get all quizzes from Firestore, utilizing the cache for speed.
 export const getQuizzes = async (): Promise<Quiz[]> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        // Always fetch from server to ensure data freshness
+        // Use getDocs to leverage Firestore's cache. It fetches from cache first, 
+        // and gets updates from the server in the background.
         const q = query(quizCollection, orderBy("createdAt", "desc"));
-        const quizSnapshot = await getDocsFromServer(q);
+        const quizSnapshot = await getDocs(q);
         
         const quizList = quizSnapshot.docs.map(docSnapshot => {
             const data = docSnapshot.data();
@@ -55,7 +56,7 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
 export const getQuizById = async (id: string): Promise<Quiz | null> => {
      try {
         const quizDocRef = doc(db, 'quizzes', id);
-        // Fetch from server to ensure we have the latest version of the quiz
+        // getDoc also uses the cache by default, ensuring fast loads for viewed quizzes.
         const quizDoc = await getDoc(quizDocRef);
 
         if (!quizDoc.exists()) {

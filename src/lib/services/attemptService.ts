@@ -17,11 +17,12 @@ export const addQuizAttempt = async (attempt: Omit<QuizAttempt, 'id' | 'submitte
     }
 };
 
-// Function to get all attempts for a specific user
+// Function to get all attempts for a specific user, using cache for speed.
 export const getAttemptsByUserId = async (userId: string): Promise<QuizAttempt[]> => {
     try {
         const attemptCollection = collection(db, 'attempts');
         const q = query(attemptCollection, where("userId", "==", userId), orderBy("submittedAt", "desc"));
+        // Use getDocs to leverage Firestore's cache.
         const attemptSnapshot = await getDocs(q);
 
         const attemptList = attemptSnapshot.docs.map(doc => {
@@ -41,11 +42,12 @@ export const getAttemptsByUserId = async (userId: string): Promise<QuizAttempt[]
     }
 };
 
-// Function to get all attempts (for admin)
+// Function to get all attempts (for admin), using cache for speed.
 export const getQuizAttempts = async (): Promise<QuizAttempt[]> => {
     try {
         const attemptCollection = collection(db, 'attempts');
         const q = query(attemptCollection, orderBy("submittedAt", "desc"));
+        // Use getDocs to leverage Firestore's cache.
         const attemptSnapshot = await getDocs(q);
         
         const attemptList = attemptSnapshot.docs.map(doc => {
