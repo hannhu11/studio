@@ -1,12 +1,9 @@
 
-'use client';
-
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQuizzes, deleteQuiz } from '@/lib/services/quizService';
+import { deleteQuiz, getQuizzes } from '@/lib/services/quizService';
 import type { Quiz } from '@/lib/types';
-import { PlusCircle, FileEdit, Loader2, Trash2 } from 'lucide-react';
+import { PlusCircle, FileEdit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -20,33 +17,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { toast } from '@/hooks/use-toast';
 
+// This is now a server component
+export default async function QuizList() {
+  const quizzes: Quiz[] = await getQuizzes();
 
-export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(initialQuizzes);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmDeleteText, setConfirmDeleteText] = useState('');
-  const { toast } = useToast();
-  const router = useRouter();
+  async function handleDeleteQuiz(formData: FormData) {
+    'use server';
+    const quizId = formData.get('quizId') as string;
+    const quizTitle = formData.get('quizTitle') as string;
+    
+    if (!quizId) return;
 
-  const handleDeleteQuiz = async (quizId: string) => {
     try {
         await deleteQuiz(quizId);
-        toast({
-            title: "Quiz Deleted",
-            description: "The quiz has been successfully removed.",
-        });
-        router.refresh(); // Refresh the page to get the latest data
+        revalidatePath('/admin/quizzes'); // Invalidate cache for this page
+        // Toast doesn't work in server actions this way, would need a more complex setup
+        // For now, we rely on revalidation to show the change.
     } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Deletion Failed",
-            description: "Could not delete the quiz. Please try again.",
-        });
-        console.error(error);
+        console.error("Deletion Failed", error);
+        // Handle error state appropriately, maybe redirect with an error message
     }
   }
 
@@ -62,82 +54,47 @@ export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
         </Link>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      ) : error ? (
-        <div className="text-center text-destructive bg-destructive/10 p-4 rounded-md">
-          {error}
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {quizzes.map(quiz => (
-            <Card key={quiz.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{quiz.title}</CardTitle>
-                <CardDescription>{quiz.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">{quiz.questions.length} questions</p>
-              </CardContent>
-              <CardFooter className="grid grid-cols-2 gap-2">
-                <Button variant="outline">
-                  <FileEdit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-                 <AlertDialog onOpenChange={() => setConfirmDeleteText('')}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {quizzes.map(quiz => (
+          <Card key={quiz.id} className="flex flex-col">
+            <CardHeader>
+              <CardTitle>{quiz.title}</CardTitle>
+              <CardDescription>{quiz.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-sm text-muted-foreground">{quiz.questions.length} questions</p>
+            </CardContent>
+            <CardFooter className="grid grid-cols-2 gap-2">
+              <Button variant="outline" disabled>
+                <FileEdit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+               <form action={handleDeleteQuiz}>
+                  <input type="hidden" name="quizId" value={quiz.id} />
+                  <input type="hidden" name="quizTitle" value={quiz.title} />
+                  <Button variant="destructive" className="w-full">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the quiz <strong className="text-foreground">{quiz.title}</strong>.
-                        <br/><br/>
-                        To confirm, please type <strong className="text-foreground">{quiz.title}</strong> in the box below.
-                      </Description>
-                    </AlertDialogHeader>
-                    <Input 
-                        value={confirmDeleteText}
-                        onChange={(e) => setConfirmDeleteText(e.target.value)}
-                        placeholder="Type the quiz title to confirm"
-                    />
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        disabled={confirmDeleteText !== quiz.title}
-                        onClick={() => handleDeleteQuiz(quiz.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete Quiz
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
-          ))}
-          <Card className="border-dashed flex flex-col items-center justify-center text-center">
-              <CardHeader>
-                  <CardTitle>Create a New Quiz</CardTitle>
-                  <CardDescription>Upload images and let AI do the work.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <Link href="/admin/quizzes/create" passHref>
-                      <Button>
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Get Started
-                      </Button>
-                  </Link>
-              </CardContent>
+                  </Button>
+              </form>
+            </CardFooter>
           </Card>
-        </div>
-      )}
+        ))}
+        <Card className="border-dashed flex flex-col items-center justify-center text-center">
+            <CardHeader>
+                <CardTitle>Create a New Quiz</CardTitle>
+                <CardDescription>Upload images and let AI do the work.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Link href="/admin/quizzes/create" passHref>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Get Started
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
