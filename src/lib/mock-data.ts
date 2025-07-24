@@ -6,9 +6,6 @@ export const mockUsers: User[] = [
   { id: 'user-2', name: 'Bob', avatarUrl: 'https://placehold.co/100x100.png' },
 ];
 
-// Mock Quizzes (DEPRECATED - Data is now fetched from Firestore)
-export const mockQuizzes: Quiz[] = [];
-
 // Mock Quiz Attempts (To be replaced with Firestore)
 export const mockAttempts: QuizAttempt[] = [
   {
@@ -54,18 +51,5 @@ export const mockAttempts: QuizAttempt[] = [
   },
 ];
 
-// Mock Lesson Summaries (To be replaced with Firestore)
-export const mockLessons: LessonSummary[] = [
-    {
-        id: 'lesson-1',
-        title: 'Cell Biology Basics',
-        summary: 'A cell is the smallest unit of a living thing. A living thing, whether made of one cell (like bacteria) or many cells (like a human), is called an organism. Thus, cells are the basic building blocks of all organisms. There are two main types of cells: prokaryotic and eukaryotic. The main difference between them is that eukaryotic cells have a nucleus, which contains the genetic material, while prokaryotic cells do not.',
-        originalFileName: 'biology_chapter_1.txt'
-    },
-    {
-        id: 'lesson-2',
-        title: 'The American Revolution',
-        summary: 'The American Revolution was a political and military struggle waged between 1765 and 1783 when 13 of Britain\'s North American colonies rejected its imperial rule. The protest began in opposition to taxes levied without colonial representation by the British monarchy and Parliament. The conflict escalated into a full-scale war, leading to the Declaration of Independence in 1776 and the eventual victory of the colonies.',
-        originalFileName: 'history_unit_5.pdf'
-    }
-];
+// Mock Lesson Summaries (DEPRECATED - Data is now fetched from Firestore)
+export const mockLessons: LessonSummary[] = [];

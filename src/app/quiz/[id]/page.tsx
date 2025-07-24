@@ -13,25 +13,43 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { explainAnswer, ExplainAnswerOutput } from '@/ai/flows/explain-answer';
-import { mockLessons } from '@/lib/mock-data'; // AI explanation context still uses this for now
+import { getLessons } from '@/lib/services/lessonService';
 
 
 function ExplanationModal({ question }: { question: Question }) {
   const [explanation, setExplanation] = useState<ExplainAnswerOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lessonContext, setLessonContext] = useState('');
 
-  // For demo, we combine all lesson summaries as context. This can be improved.
-  const lessonContent = mockLessons.map(l => `Title: ${l.title}\n${l.summary}`).join('\n\n---\n\n');
+  // Fetch all lesson summaries to use as context for the AI.
+  // This could be optimized in a real app to only fetch relevant lessons.
+  useEffect(() => {
+    const fetchLessonContext = async () => {
+        try {
+            const lessons = await getLessons();
+            const context = lessons.map(l => `Title: ${l.title}\n${l.summary}`).join('\n\n---\n\n');
+            setLessonContext(context);
+        } catch (e) {
+            console.error("Could not fetch lessons for AI context", e);
+            // Non-critical error, AI will just have less context.
+        }
+    };
+    fetchLessonContext();
+  }, []);
 
   const fetchExplanation = async () => {
+    if (!lessonContext) {
+        // Wait for context to be loaded
+        return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const result = await explainAnswer({
         question: question.questionText,
         answer: question.answers[question.correctAnswerIndex],
-        lessonContent: lessonContent
+        lessonContent: lessonContext
       });
       setExplanation(result);
     } catch (e) {
@@ -43,9 +61,9 @@ function ExplanationModal({ question }: { question: Question }) {
   };
 
   return (
-    <Dialog onOpenChange={(open) => {if(open && !explanation) fetchExplanation()}}>
+    <Dialog onOpenChange={(open) => {if(open && !explanation && lessonContext) fetchExplanation()}}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm"><Lightbulb className="mr-2 h-4 w-4"/> AI Explanation</Button>
+        <Button variant="ghost" size="sm" disabled={!lessonContext}><Lightbulb className="mr-2 h-4 w-4"/> AI Explanation</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
