@@ -6,56 +6,10 @@ export const mockUsers: User[] = [
   { id: 'user-2', name: 'Bob', avatarUrl: 'https://placehold.co/100x100.png' },
 ];
 
-// Mock Quizzes
-export const mockQuizzes: Quiz[] = [
-  {
-    id: 'quiz-1',
-    title: 'General Science',
-    description: 'Test your knowledge of basic scientific principles.',
-    questions: [
-      {
-        id: 'q-1-1',
-        questionText: 'What is the chemical symbol for water?',
-        answers: ['O2', 'H2O', 'CO2', 'NaCl'],
-        correctAnswerIndex: 1,
-      },
-      {
-        id: 'q-1-2',
-        questionText: 'Which planet is known as the Red Planet?',
-        image: 'https://placehold.co/600x400.png',
-        answers: ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-        correctAnswerIndex: 1,
-      },
-      {
-        id: 'q-1-3',
-        questionText: 'What is the powerhouse of the cell?',
-        answers: ['Nucleus', 'Ribosome', 'Mitochondrion', 'Chloroplast'],
-        correctAnswerIndex: 2,
-      },
-    ],
-  },
-  {
-    id: 'quiz-2',
-    title: 'World History',
-    description: 'A quiz on major historical events and figures.',
-    questions: [
-      {
-        id: 'q-2-1',
-        questionText: 'In which year did World War II end?',
-        answers: ['1942', '1945', '1950', '1939'],
-        correctAnswerIndex: 1,
-      },
-      {
-        id: 'q-2-2',
-        questionText: 'Who was the first President of the United States?',
-        answers: ['Abraham Lincoln', 'Thomas Jefferson', 'George Washington', 'John Adams'],
-        correctAnswerIndex: 2,
-      },
-    ],
-  },
-];
+// Mock Quizzes (DEPRECATED - Data is now fetched from Firestore)
+export const mockQuizzes: Quiz[] = [];
 
-// Mock Quiz Attempts
+// Mock Quiz Attempts (To be replaced with Firestore)
 export const mockAttempts: QuizAttempt[] = [
   {
     id: 'attempt-1',
@@ -100,7 +54,7 @@ export const mockAttempts: QuizAttempt[] = [
   },
 ];
 
-// Mock Lesson Summaries
+// Mock Lesson Summaries (To be replaced with Firestore)
 export const mockLessons: LessonSummary[] = [
     {
         id: 'lesson-1',

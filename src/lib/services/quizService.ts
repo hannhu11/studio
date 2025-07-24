@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, writeBatch } from "firebase/firestore"; 
 import type { Quiz, Question } from '@/lib/types';
 
 // We are defining a type that represents the quiz data to be stored in Firestore.
@@ -22,14 +22,19 @@ export const addQuiz = async (quiz: Omit<Quiz, 'id'>) => {
         });
 
         const questionsCollection = collection(doc(db, 'quizzes', docRef.id), 'questions');
-        for (const question of quiz.questions) {
-            await addDoc(questionsCollection, {
-                questionText: question.questionText,
+        // Use a batch write for creating all questions at once for efficiency
+        const batch = writeBatch(db);
+        quiz.questions.forEach(question => {
+            const newQuestionRef = doc(questionsCollection); // Automatically generate a new ID
+            batch.set(newQuestionRef, {
+                 questionText: question.questionText,
                 answers: question.answers,
                 correctAnswerIndex: question.correctAnswerIndex,
                 image: question.image || null,
             } as QuestionData);
-        }
+        });
+        await batch.commit();
+        
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -42,11 +47,19 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
     try {
         const quizCollection = collection(db, 'quizzes');
         const quizSnapshot = await getDocs(quizCollection);
-        const quizList = quizSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quiz));
         
-        // Note: For simplicity, we are not fetching all questions for the list view.
-        // The 'questions' array will be empty or you might want to fetch just the count.
-        return quizList.map(q => ({...q, questions: []}));
+        const quizList = await Promise.all(quizSnapshot.docs.map(async (docSnapshot) => {
+            const quizData = { id: docSnapshot.id, ...docSnapshot.data() } as Quiz;
+            
+            // Also fetch the questions for each quiz
+            const questionsCollection = collection(db, 'quizzes', docSnapshot.id, 'questions');
+            const questionsSnapshot = await getDocs(questionsCollection);
+            quizData.questions = questionsSnapshot.docs.map(qDoc => ({ id: qDoc.id, ...qDoc.data() } as Question));
+            
+            return quizData;
+        }));
+        
+        return quizList;
     } catch (e) {
         console.error("Error getting documents: ", e);
         throw new Error("Could not fetch quizzes from the database.");
@@ -76,3 +89,28 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
         throw new Error("Could not fetch quiz from the database.");
     }
 }
+
+// Function to delete a quiz and all its sub-collection documents (questions)
+export const deleteQuiz = async (id: string): Promise<void> => {
+    try {
+        const quizDocRef = doc(db, 'quizzes', id);
+        
+        // Firestore does not automatically delete sub-collections.
+        // We must delete all question documents first.
+        const questionsCollection = collection(quizDocRef, 'questions');
+        const questionsSnapshot = await getDocs(questionsCollection);
+
+        const batch = writeBatch(db);
+        questionsSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        // After deleting the sub-collection, delete the main quiz document.
+        await deleteDoc(quizDocRef);
+        
+    } catch (e) {
+        console.error("Error deleting document: ", e);
+        throw new Error("Could not delete quiz from the database.");
+    }
+};

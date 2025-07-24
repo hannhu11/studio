@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, ClipboardCheck, Book, Clock } from 'lucide-react';
-import { mockQuizzes, mockAttempts, mockUsers } from '@/lib/mock-data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+// Note: This page still uses mock data. This should be updated to use real data from Firestore.
+import { mockQuizzes, mockAttempts, mockUsers } from '@/lib/mock-data';
 
 const totalAttempts = mockAttempts.length;
 const totalUsers = mockUsers.length;

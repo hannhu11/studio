@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { mockQuizzes, mockLessons } from '@/lib/mock-data';
+import { getQuizById } from '@/lib/services/quizService';
 import type { Quiz, Question } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Image from 'next/image';
 import { explainAnswer, ExplainAnswerOutput } from '@/ai/flows/explain-answer';
+import { mockLessons } from '@/lib/mock-data'; // AI explanation context still uses this for now
 
 
 function ExplanationModal({ question }: { question: Question }) {
@@ -20,7 +21,7 @@ function ExplanationModal({ question }: { question: Question }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // For demo, we combine all lesson summaries as context.
+  // For demo, we combine all lesson summaries as context. This can be improved.
   const lessonContent = mockLessons.map(l => `Title: ${l.title}\n${l.summary}`).join('\n\n---\n\n');
 
   const fetchExplanation = async () => {
@@ -74,22 +75,37 @@ export default function QuizPage() {
   const quizId = params.id as string;
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
 
   useEffect(() => {
-    const foundQuiz = mockQuizzes.find(q => q.id === quizId);
-    if (foundQuiz) {
-      setQuiz(foundQuiz);
-      setSelectedAnswers(Array(foundQuiz.questions.length).fill(null));
-    } else {
-        router.push('/user/dashboard'); // Redirect if quiz not found
-    }
+    if (!quizId) return;
+
+    const fetchQuiz = async () => {
+        try {
+            setIsLoading(true);
+            const foundQuiz = await getQuizById(quizId);
+            if (foundQuiz) {
+              setQuiz(foundQuiz);
+              setSelectedAnswers(Array(foundQuiz.questions.length).fill(null));
+            } else {
+                router.push('/user/dashboard'); // Redirect if quiz not found
+            }
+        } catch (error) {
+            console.error("Failed to fetch quiz", error);
+            router.push('/user/dashboard');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchQuiz();
   }, [quizId, router]);
   
-  if (!quiz) {
+  if (isLoading || !quiz) {
     return <div className="flex items-center justify-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary"/></div>;
   }
   
@@ -126,6 +142,7 @@ export default function QuizPage() {
     const finalScore = Math.round((correctCount / quiz.questions.length) * 100);
     setScore(finalScore);
     setIsFinished(true);
+    // TODO: Save quiz attempt to Firestore
   };
   
   if (isFinished) {
