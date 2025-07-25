@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Quiz, Question } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createQuizAction } from '../actions';
+import Link from 'next/link';
 
 type FilePreview = {
   name: string;
@@ -151,7 +152,7 @@ export default function CreateQuizPage() {
 
   return (
     <div>
-      <h1 className="font-headline text-3xl font-bold mb-2">Create New Quiz</h1>
+      <h1 className="font-headline text-3xl font-bold mb-2">Create New Quiz with AI</h1>
       <p className="text-muted-foreground mb-6">Upload images of your questions, and our AI will do the rest. Maximum {MAX_QUESTIONS_LIMIT} questions per quiz.</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -208,6 +209,9 @@ export default function CreateQuizPage() {
                   </>
                 )}
               </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Or <Link href="/admin/quizzes/create-manual" className="underline hover:text-primary">create a quiz manually</Link>.
+              </p>
         </div>
 
         <div className="lg:col-span-2">
