@@ -113,18 +113,18 @@ export default function CreateQuizPage() {
     
     startPublishing(async () => {
       const result = await createQuizAction(generatedQuiz);
-      if (result.success) {
-        toast({
-          title: "Quiz Published!",
-          description: `"${generatedQuiz.title}" is now available for users.`,
-        });
-        router.push('/admin/quizzes');
-      } else {
+      if (result?.error) {
          toast({
             variant: "destructive",
             title: "Publishing Failed",
             description: result.error,
         });
+      } else {
+        toast({
+          title: "Quiz Published!",
+          description: `"${generatedQuiz.title}" is now available for users.`,
+        });
+        // The redirection is now handled inside the server action
       }
     });
   };
