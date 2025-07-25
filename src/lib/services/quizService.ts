@@ -92,3 +92,4 @@ export const deleteQuiz = async (id: string): Promise<void> => {
         throw new Error("Could not delete quiz from the database.");
     }
 };
+
