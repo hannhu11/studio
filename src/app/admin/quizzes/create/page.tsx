@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { generateQuestionsFromImages } from '@/ai/flows/generate-questions-from-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import type { Quiz, Question } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { createQuizAction } from '../actions';
 
 type FilePreview = {
@@ -29,12 +28,11 @@ const MAX_QUESTIONS_LIMIT = 50;
 export default function CreateQuizPage() {
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPublishing, startPublishing] = useTransition();
+  const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -122,22 +120,33 @@ export default function CreateQuizPage() {
       return;
     }
     
-    startPublishing(async () => {
-      const result = await createQuizAction(generatedQuiz);
-      if (result?.error) {
-         toast({
-            variant: "destructive",
-            title: "Publishing Failed",
-            description: result.error,
-        });
-      } else {
+    setIsPublishing(true);
+    try {
+        const result = await createQuizAction(generatedQuiz);
+        if (result?.error) {
+            toast({
+                variant: "destructive",
+                title: "Publishing Failed",
+                description: result.error,
+            });
+            setIsPublishing(false);
+        } else {
+            toast({
+                title: "Quiz Published!",
+                description: `"${generatedQuiz.title}" is now available for users.`,
+            });
+            // The redirection is now handled inside the server action,
+            // so we don't need to do it here. The setIsPublishing(false) is
+            // not strictly necessary as we are navigating away, but it's good practice.
+        }
+    } catch (error) {
         toast({
-          title: "Quiz Published!",
-          description: `"${generatedQuiz.title}" is now available for users.`,
+            variant: "destructive",
+            title: "An Unexpected Error Occurred",
+            description: "Something went wrong. Please try again.",
         });
-        // The redirection is now handled inside the server action
-      }
-    });
+        setIsPublishing(false);
+    }
   };
 
 
