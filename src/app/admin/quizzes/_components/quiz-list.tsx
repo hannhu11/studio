@@ -26,9 +26,9 @@ export function QuizList({ initialQuizzes }: { initialQuizzes: Quiz[] }) {
           title: "Quiz Deleted",
           description: "The quiz has been successfully removed.",
         });
-        // The router.refresh() is useful if you want to be sure the data is fresh from the server
-        // but optimistic update (setQuizzes) provides a faster user experience.
-        router.refresh();
+        // router.refresh() is not strictly needed due to revalidatePath in the action,
+        // but it can help ensure the current page reflects the change immediately.
+        router.refresh(); 
       } else {
         toast({
           variant: 'destructive',
