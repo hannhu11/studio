@@ -2,16 +2,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addQuiz, deleteQuiz } from '@/lib/services/quizService';
+import { addQuiz } from '@/lib/services/quizService';
 import type { Quiz } from '@/lib/types';
 import { redirect } from 'next/navigation';
 
-export async function createQuizAction(quiz: Omit<Quiz, 'id' | 'createdAt'>) {
+export async function createQuizAction(quiz: Omit<Quiz, 'id' | 'createdAt'>): Promise<void> {
     try {
         await addQuiz(quiz);
     } catch (error) {
         console.error("Creation Failed", error);
-        return { success: false, error: 'Could not create the quiz. Please try again.' };
+        // We will let the client handle the error state, but not redirect.
+        // In a real app, you might want to return an error object.
+        return;
     }
     
     revalidatePath('/admin/quizzes');
