@@ -50,6 +50,8 @@ const prompt = ai.definePrompt({
   name: 'generateQuestionsFromImagesPrompt',
   input: {schema: GenerateQuestionsFromImagesInputSchema},
   output: {schema: GenerateQuestionsFromImagesOutputSchema},
+  // Explicitly use the vision-capable model here.
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an AI quiz generator. You will receive an image containing quiz questions. Extract the questions, possible answers, and identify the correct answer index.
 
 Image: {{media url=imageDataUri}}
