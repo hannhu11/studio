@@ -15,7 +15,8 @@ interface AuthState {
   _setLoading: (loading: boolean) => void;
 }
 
-const ADMIN_EMAIL = 'hannhu4002@gmail.com';
+// IMPORTANT: Replace this with your actual admin email address.
+const ADMIN_EMAIL = 'your-admin-email@example.com'; 
 
 export const useAuth = create<AuthState>((set, get) => ({
   user: null,
