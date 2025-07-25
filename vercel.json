@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "next.config.ts",
+      "use": "@vercel/next",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "nodejs": "20.x"
+      }
+    }
+  ]
+}
