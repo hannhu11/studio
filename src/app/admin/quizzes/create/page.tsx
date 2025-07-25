@@ -27,7 +27,7 @@ type GeneratedQuiz = Omit<Quiz, 'id' | 'createdAt'>;
 export default function CreateQuizPage() {
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPublishing, startTransition] = useTransition();
+  const [isPublishing, startPublishing] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   
@@ -71,14 +71,18 @@ export default function CreateQuizPage() {
     setGeneratedQuiz(null);
 
     try {
-      let allQuestions: Question[] = [];
-      for (const file of files) {
-        const result = await generateQuestionsFromImages({ imageDataUri: file.dataUri });
-        if (result && result.questions) {
-          const newQuestions = result.questions.map(q => ({ ...q, id: crypto.randomUUID() }));
-          allQuestions = [...allQuestions, ...newQuestions];
-        }
-      }
+      // Create an array of promises, one for each file
+      const generationPromises = files.map(file => 
+        generateQuestionsFromImages({ imageDataUri: file.dataUri })
+      );
+
+      // Wait for all promises to resolve
+      const results = await Promise.all(generationPromises);
+
+      // Combine the questions from all results
+      const allQuestions: Question[] = results.flatMap(result => 
+        result && result.questions ? result.questions.map(q => ({ ...q, id: crypto.randomUUID() })) : []
+      );
       
       if(allQuestions.length > 0) {
         setGeneratedQuiz({ 
@@ -107,7 +111,7 @@ export default function CreateQuizPage() {
       return;
     }
     
-    startTransition(async () => {
+    startPublishing(async () => {
       const result = await createQuizAction(generatedQuiz);
       if (result.success) {
         toast({
