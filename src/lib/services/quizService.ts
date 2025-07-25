@@ -1,7 +1,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, doc, getDoc, deleteDoc, Timestamp, query, orderBy, serverTimestamp } from "firebase/firestore"; 
-import type { Quiz } from '@/lib/types';
+import type { Quiz, Question } from '@/lib/types';
 
 
 // Function to add a new quiz to Firestore
@@ -9,14 +9,16 @@ export const addQuiz = async (quiz: Omit<Quiz, 'id' | 'createdAt'>): Promise<str
     try {
         const quizCollection = collection(db, 'quizzes');
         
-        // Add server-side timestamp and unique IDs to questions here to ensure data integrity
+        // The server timestamp is added here to ensure data integrity.
+        // Question IDs are no longer manually created to prevent type inconsistencies.
         const quizDataWithServerInfo = {
             ...quiz,
             createdAt: serverTimestamp(),
-            questions: quiz.questions.map((q, index) => ({
-                ...q,
-                id: q.id || `${Date.now()}-${index}`, 
-            })),
+            questions: quiz.questions.map(q => {
+                // Create a new object without the 'id' property if it exists
+                const { id, ...questionData } = q;
+                return questionData;
+            }),
         };
 
         const docRef = await addDoc(quizCollection, quizDataWithServerInfo);
@@ -68,7 +70,8 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
             id: quizDoc.id,
             title: data.title,
             description: data.description,
-            questions: data.questions || [],
+            // Assign a temporary ID for client-side key purposes if needed
+            questions: (data.questions || []).map((q: Omit<Question, 'id'>, index: number) => ({...q, id: `${quizDoc.id}-${index}`})),
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
         } as Quiz;
 

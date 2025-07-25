@@ -1,5 +1,5 @@
 export interface Question {
-  id: string;
+  id?: string; // ID is now optional
   questionText: string;
   image?: string; // URL to the image
   answers: string[];

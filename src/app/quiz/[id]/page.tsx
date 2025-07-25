@@ -179,7 +179,7 @@ export default function QuizPage() {
         score: finalScore,
         timeTaken,
         answers: quiz.questions.map((q, index) => ({
-            questionId: q.id,
+            questionId: q.id!,
             selectedAnswerIndex: selectedAnswers[index]
         }))
     };
