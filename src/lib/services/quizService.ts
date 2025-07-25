@@ -5,19 +5,21 @@ import type { Quiz } from '@/lib/types';
 
 
 // Function to add a new quiz to Firestore
-export const addQuiz = async (quiz: Omit<Quiz, 'id'>): Promise<string> => {
+export const addQuiz = async (quiz: Omit<Quiz, 'id' | 'createdAt'>): Promise<string> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        // Add unique IDs to questions on the server side to prevent serialization issues.
-        const quizDataWithQuestionIds = {
+        
+        // Add server-side timestamp and unique IDs to questions here to ensure data integrity
+        const quizDataWithServerInfo = {
             ...quiz,
+            createdAt: serverTimestamp(),
             questions: quiz.questions.map((q, index) => ({
                 ...q,
                 id: q.id || `${Date.now()}-${index}`, 
             })),
         };
 
-        const docRef = await addDoc(quizCollection, quizDataWithQuestionIds);
+        const docRef = await addDoc(quizCollection, quizDataWithServerInfo);
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
