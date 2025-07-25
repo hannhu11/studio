@@ -5,10 +5,15 @@ import { revalidatePath } from 'next/cache';
 import { addQuiz, deleteQuiz } from '@/lib/services/quizService';
 import type { Quiz } from '@/lib/types';
 import { redirect } from 'next/navigation';
+import { serverTimestamp } from 'firebase/firestore';
 
 export async function createQuizAction(quiz: Omit<Quiz, 'id' | 'createdAt'>) {
     try {
-        await addQuiz(quiz);
+        const quizWithTimestamp = {
+            ...quiz,
+            createdAt: serverTimestamp()
+        };
+        await addQuiz(quizWithTimestamp);
     } catch (error) {
         console.error("Creation Failed", error);
         return { success: false, error: 'Could not create the quiz. Please try again.' };

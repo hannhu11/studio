@@ -1,5 +1,6 @@
+
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, deleteDoc, Timestamp, query, orderBy } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, doc, getDoc, deleteDoc, Timestamp, query, orderBy } from "firebase/firestore"; 
 import type { Quiz } from '@/lib/types';
 
 
@@ -7,17 +8,16 @@ import type { Quiz } from '@/lib/types';
 export const addQuiz = async (quiz: Omit<Quiz, 'id'>): Promise<string> => {
     try {
         const quizCollection = collection(db, 'quizzes');
-        // Now, we store the questions array directly in the quiz document.
-        const quizDataWithTimestamp = {
+        // The timestamp is now added in the server action, not here.
+        const quizData = {
             ...quiz,
             questions: quiz.questions.map((q, index) => ({
                 id: q.id || `${Date.now()}-${index}`, 
                 ...q
             })),
-            createdAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(quizCollection, quizDataWithTimestamp);
+        const docRef = await addDoc(quizCollection, quizData);
         return docRef.id;
     } catch (e) {
         console.error("Error adding document: ", e);
