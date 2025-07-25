@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { generateQuestionsFromImages, GenerateQuestionsFromImagesOutput } from '@/ai/flows/generate-questions-from-images';
+import { generateQuestionsFromImages } from '@/ai/flows/generate-questions-from-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Upload, Wand2, CheckCircle, AlertCircle, FileImage, X, BookText } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { addQuiz } from '@/lib/services/quizService';
 import type { Quiz, Question } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { createQuizAction } from '../actions';
 
 type FilePreview = {
   name: string;
@@ -27,7 +27,7 @@ type GeneratedQuiz = Omit<Quiz, 'id' | 'createdAt'>;
 export default function CreateQuizPage() {
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishing, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
   
@@ -107,30 +107,22 @@ export default function CreateQuizPage() {
       return;
     }
     
-    setIsPublishing(true);
-    
-    try {
-      await addQuiz(generatedQuiz);
-
-      toast({
-        title: "Quiz Published!",
-        description: `"${generatedQuiz.title}" is now available for users.`,
-      });
-      
-      // Instead of pushing, we use refresh to re-run the server component loader function on the quizzes page
-      router.push('/admin/quizzes');
-      router.refresh();
-
-    } catch (e) {
+    startTransition(async () => {
+      const result = await createQuizAction(generatedQuiz);
+      if (result.success) {
         toast({
+          title: "Quiz Published!",
+          description: `"${generatedQuiz.title}" is now available for users.`,
+        });
+        router.push('/admin/quizzes');
+      } else {
+         toast({
             variant: "destructive",
             title: "Publishing Failed",
-            description: "Could not save the quiz to the database. Please try again.",
+            description: result.error,
         });
-        console.error(e);
-    } finally {
-        setIsPublishing(false);
-    }
+      }
+    });
   };
 
 
@@ -156,7 +148,7 @@ export default function CreateQuizPage() {
                             <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                             <p className="text-xs text-muted-foreground">PNG, JPG, or other image formats</p>
                         </div>
-                        <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*" disabled={isGenerating} />
+                        <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handleFileChange} accept="image/*" disabled={isGenerating || isPublishing} />
                     </label>
                 </div>
               </div>
@@ -170,7 +162,7 @@ export default function CreateQuizPage() {
                                 <FileImage className="h-4 w-4 flex-shrink-0" />
                                 <span className="truncate">{file.name}</span>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)} disabled={isGenerating}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)} disabled={isGenerating || isPublishing}>
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
@@ -180,16 +172,16 @@ export default function CreateQuizPage() {
               
             </CardContent>
           </Card>
-           <Button onClick={handleGenerateQuiz} disabled={isGenerating || files.length === 0} className="w-full" size="lg">
+           <Button onClick={handleGenerateQuiz} disabled={isGenerating || isPublishing || files.length === 0} className="w-full" size="lg">
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating... (This may take a moment)
+                    Generating...
                   </>
                 ) : (
                   <>
                     <Wand2 className="mr-2 h-4 w-4" />
-                    Generate Quiz from Images
+                    Generate Quiz
                   </>
                 )}
               </Button>
@@ -200,7 +192,7 @@ export default function CreateQuizPage() {
             <CardHeader>
               <CardTitle>2. Review & Publish</CardTitle>
               <CardDescription>
-                Review the AI-generated questions and answers. Give your quiz a title, then publish it.
+                Review the AI-generated questions. Give your quiz a title, then publish it.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -232,11 +224,11 @@ export default function CreateQuizPage() {
                   <div className="space-y-4">
                     <div>
                         <Label htmlFor="quiz-title" className="text-base font-semibold">Quiz Title</Label>
-                        <Input id="quiz-title" value={generatedQuiz.title} onChange={(e) => setGeneratedQuiz({...generatedQuiz, title: e.target.value})} placeholder="e.g. Biology Midterm Review" className="mt-2 text-lg h-12"/>
+                        <Input id="quiz-title" value={generatedQuiz.title} onChange={(e) => setGeneratedQuiz({...generatedQuiz, title: e.target.value})} placeholder="e.g. Biology Midterm Review" className="mt-2 text-lg h-12" disabled={isPublishing}/>
                     </div>
                     <div>
                         <Label htmlFor="quiz-description" className="text-base font-semibold">Quiz Description</Label>
-                        <Textarea id="quiz-description" value={generatedQuiz.description} onChange={(e) => setGeneratedQuiz({...generatedQuiz, description: e.target.value})} placeholder="A short description of what this quiz is about." className="mt-2"/>
+                        <Textarea id="quiz-description" value={generatedQuiz.description} onChange={(e) => setGeneratedQuiz({...generatedQuiz, description: e.target.value})} placeholder="A short description of what this quiz is about." className="mt-2" disabled={isPublishing}/>
                     </div>
                   </div>
 
@@ -245,14 +237,14 @@ export default function CreateQuizPage() {
                       <Card key={q.id} className="bg-card">
                         <CardHeader>
                           <Label>Question {qIndex + 1}</Label>
-                           <Textarea defaultValue={q.questionText} className="mt-2 text-base" />
+                           <Textarea defaultValue={q.questionText} className="mt-2 text-base" disabled={isPublishing}/>
                         </CardHeader>
                         <CardContent>
-                          <RadioGroup defaultValue={q.answers[q.correctAnswerIndex]}>
+                          <RadioGroup defaultValue={q.answers[q.correctAnswerIndex]} disabled={isPublishing}>
                             {q.answers.map((ans, aIndex) => (
                               <div key={aIndex} className="flex items-center space-x-3">
                                 <RadioGroupItem value={ans} id={`q${qIndex}a${aIndex}`} checked={aIndex === q.correctAnswerIndex}/>
-                                <Input defaultValue={ans} className="bg-background"/>
+                                <Input defaultValue={ans} className="bg-background" disabled={isPublishing}/>
                               </div>
                             ))}
                           </RadioGroup>

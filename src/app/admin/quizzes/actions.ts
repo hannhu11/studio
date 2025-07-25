@@ -2,7 +2,20 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { deleteQuiz } from '@/lib/services/quizService';
+import { addQuiz, deleteQuiz } from '@/lib/services/quizService';
+import type { Quiz } from '@/lib/types';
+
+export async function createQuizAction(quiz: Omit<Quiz, 'id' | 'createdAt'>) {
+    try {
+        await addQuiz(quiz);
+        revalidatePath('/admin/quizzes');
+        return { success: true };
+    } catch (error) {
+        console.error("Creation Failed", error);
+        return { success: false, error: 'Could not create the quiz. Please try again.' };
+    }
+}
+
 
 export async function deleteQuizAction(quizId: string) {
   try {
