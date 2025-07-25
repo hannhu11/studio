@@ -9,5 +9,4 @@ import {googleAI} from '@genkit-ai/googleai';
 // when deployed on Google Cloud or a Vercel environment connected to a Google Cloud project.
 export const ai = genkit({
   plugins: [googleAI()],
-  model: 'googleai/gemini-2.0-flash',
 });
